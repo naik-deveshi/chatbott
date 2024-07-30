@@ -20,7 +20,6 @@
 
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from 'vue';
-import axios from 'axios';
 
 interface Message {
     id: string;
@@ -43,34 +42,35 @@ const sendMessage = async () => {
 
     messages.value.push(newMessage);
 
-    try {
-        const response = await axios.post('http://localhost:5000/api/ai21/chat', {
-            message: inputMessage.value
-        });
-        console.log('response', response);
-        
+    const eventSource = new EventSource(`http://localhost:5000/api/ai21/stream?message=${encodeURIComponent(inputMessage.value)}`);
 
-        messages.value.push({
-            id: Date.now().toString(),
-            sender: 'Bot',
-            text: response.data.outputs[0].text
+    eventSource.onmessage = (event) => {
+        const lastMessage = messages.value[messages.value.length - 1];
+        if (lastMessage && lastMessage.sender === 'Bot') {
+            lastMessage.text += event.data;
+        } else {
+            messages.value.push({
+                id: Date.now().toString(),
+                sender: 'Bot',
+                text: event.data
+            });
+        }
+        nextTick(() => {
+            if (messagesContainer.value) {
+                messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
+            }
         });
-    } catch (error) {
-        console.error('Error sending message:', error);
-    }
+    };
+
+    eventSource.onerror = (error) => {
+        console.error('Error receiving message:', error);
+        eventSource.close();
+    };
 
     inputMessage.value = '';
-
-    // Scroll to bottom of the messages container
-    nextTick(() => {
-        if (messagesContainer.value) {
-            messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
-        }
-    });
 };
 
 onMounted(() => {
-    // Scroll to bottom of the messages container on load
     nextTick(() => {
         if (messagesContainer.value) {
             messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
