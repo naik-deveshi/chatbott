@@ -55,6 +55,7 @@ const sendMessage = async () => {
     eventSource.value = new EventSource(`http://localhost:5000/api/ai21/stream?message=${encodeURIComponent(inputMessage.value)}`);
 
     eventSource.value.onmessage = (event) => {
+        isLoading.value = false;
         const lastMessage = messages.value[messages.value.length - 1];
         if (lastMessage && lastMessage.sender === 'Bot') {
             lastMessage.text += event.data;
