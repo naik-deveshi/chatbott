@@ -13,7 +13,9 @@
         </div>
         <div class="input-container">
             <input v-model="inputMessage" @keyup.enter="sendMessage" placeholder="Type a message" />
-            <button @click="sendMessage">Send</button>
+            <button @click="isBotResponding ? stopBot() : sendMessage()">
+                {{ isBotResponding ? 'Stop' : 'Send' }}
+            </button>
         </div>
     </div>
 </template>
@@ -30,6 +32,8 @@ interface Message {
 const messages = ref<Message[]>([]);
 const inputMessage = ref('');
 const messagesContainer = ref<HTMLDivElement | null>(null);
+const eventSource = ref<EventSource | null>(null);
+const isBotResponding = ref(false);
 
 const sendMessage = async () => {
     if (inputMessage.value.trim() === '') return;
@@ -41,10 +45,11 @@ const sendMessage = async () => {
     };
 
     messages.value.push(newMessage);
+    isBotResponding.value = true;
 
-    const eventSource = new EventSource(`http://localhost:5000/api/ai21/stream?message=${encodeURIComponent(inputMessage.value)}`);
+    eventSource.value = new EventSource(`http://localhost:5000/api/ai21/stream?message=${encodeURIComponent(inputMessage.value)}`);
 
-    eventSource.onmessage = (event) => {
+    eventSource.value.onmessage = (event) => {
         const lastMessage = messages.value[messages.value.length - 1];
         if (lastMessage && lastMessage.sender === 'Bot') {
             lastMessage.text += event.data;
@@ -62,12 +67,21 @@ const sendMessage = async () => {
         });
     };
 
-    eventSource.onerror = (error) => {
+    eventSource.value.onerror = (error) => {
         console.error('Error receiving message:', error);
-        eventSource.close();
+        eventSource.value?.close();
+        isBotResponding.value = false;
     };
 
     inputMessage.value = '';
+};
+
+const stopBot = () => {
+    if (eventSource.value) {
+        eventSource.value.close();
+        eventSource.value = null;
+        isBotResponding.value = false;
+    }
 };
 
 onMounted(() => {
@@ -82,17 +96,12 @@ onMounted(() => {
 <style scoped>
 .chat-container {
     position: fixed;
-    /* Change to fixed to position in top-left */
     top: 0;
     left: 0;
     width: 400px;
-    /* Increase width */
     height: 850px;
-    /* Set a fixed height */
     max-width: 100vw;
-    /* Ensure it doesn't overflow */
     max-height: 100vh;
-    /* Ensure it doesn't overflow */
     margin: 10px;
     border: 1px solid #ddd;
     border-radius: 8px;
