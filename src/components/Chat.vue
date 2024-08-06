@@ -5,10 +5,7 @@
         </div>
         <div class="messages" ref="messagesContainer">
             <div v-for="msg in messages" :key="msg.id" :class="['message', msg.sender.toLowerCase()]">
-                <div class="message-content">
-                    <!-- <strong>{{ msg.sender }}:</strong> -->
-                    <p>{{ msg.text }}</p>
-                </div>
+                <div class="message-content" v-html="renderMarkdown(msg.text)"></div>
             </div>
             <div v-if="isLoading" class="loader">
                 <div class="spinner"></div>
@@ -25,6 +22,9 @@
 
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from 'vue';
+import { marked } from 'marked';
+import hljs from 'highlight.js';
+import 'highlight.js/styles/default.css';
 
 interface Message {
     id: string;
@@ -38,6 +38,15 @@ const messagesContainer = ref<HTMLDivElement | null>(null);
 const eventSource = ref<EventSource | null>(null);
 const isBotResponding = ref(false);
 const isLoading = ref(false);
+
+const renderMarkdown = (text: string) => {
+    return marked(text, {
+        highlight: function (code, lang) {
+            const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+            return hljs.highlight(code, { language }).value;
+        }
+    });
+};
 
 const sendMessage = async () => {
     if (inputMessage.value.trim() === '') return;
@@ -117,71 +126,77 @@ onMounted(() => {
     background-color: #f9f9f9;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     display: flex;
-        flex-direction: column;
-    
-        .header {
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px;
-            text-align: center;
-        }
-        }
-    
-        .messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 10px;
-            background: #fff;
-            height: calc(100% - 95px);
-            display: flex;
-            flex-direction: column;
-        }
-    
-        .message {
-            margin-bottom: 10px;
-            padding: 8px;
-            border-radius: 5px;
-        }
-    
-        .message.user {
-            background-color: #d1e7dd;
-            align-self: flex-end;
-        }
-    
-        .message.bot {
-            background-color: #f1f1f1;
-            align-self: flex-start;
-        }
-    
-        .message-content p {
-            margin: 0;
-        }
-    
-        .loader {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 10px;
-        }
-    
-        .spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            border-left-color: #4CAF50;
-            animation: spin 1s ease infinite;
-        }
-    
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-    
-            100% {
-                transform: rotate(360deg);
-            }
-        }
+    flex-direction: column;
+}
+.header {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px;
+    text-align: center;
+}
+
+.messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+    background: #fff;
+    height: calc(100% - 95px);
+    display: flex;
+    flex-direction: column;
+}
+
+.message {
+    margin-bottom: 10px;
+    padding: 8px;
+    border-radius: 5px;
+}
+
+.message.user {
+    background-color: #d1e7dd;
+    align-self: flex-end;
+}
+
+.message.bot {
+    background-color: #f1f1f1;
+    align-self: flex-start;
+}
+.message-content {
+    white-space: pre-wrap;
+}
+
+.message-content pre {
+    background: #f5f5f5;
+    padding: 10px;
+    border-radius: 5px;
+    overflow-x: auto;
+}
+
+.loader {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+}
+
+.spinner {
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border-left-color: #4CAF50;
+    animation: spin 1s ease infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
 .input-container {
     display: flex;
     border-top: 1px solid #ddd;
