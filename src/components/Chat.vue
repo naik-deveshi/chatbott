@@ -114,7 +114,7 @@ const uploadImage = async (event: Event) => {
         messages.value.push({
             id: Date.now().toString(),
             sender: 'Bot',
-            text: `Image analysis result: ${JSON.stringify(response.data, null, 2)}`
+            text: `${JSON.stringify(response.data, null, 2)}`
         });
         isLoading.value = false;
     } catch (error) {
