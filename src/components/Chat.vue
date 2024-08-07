@@ -13,6 +13,7 @@
         </div>
         <div class="input-container">
             <input v-model="inputMessage" @keyup.enter="sendMessage" placeholder="Type a message" />
+            <input type="file" @change="uploadImage" />
             <button @click="isBotResponding ? stopBot() : sendMessage()">
                 {{ isBotResponding ? 'Stop' : 'Send' }}
             </button>
@@ -25,6 +26,7 @@ import { ref, onMounted, nextTick } from 'vue';
 import { marked } from 'marked';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/default.css';
+import axios from 'axios';
 
 interface Message {
     id: string;
@@ -90,6 +92,40 @@ const sendMessage = async () => {
     };
 
     inputMessage.value = '';
+};
+
+const uploadImage = async (event: Event) => {
+    const fileInput = event.target as HTMLInputElement;
+    const file = fileInput.files ? fileInput.files[0] : null;
+
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+        isLoading.value = true;
+        const response = await axios.post('http://localhost:5000/api/analyze-image', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+
+        messages.value.push({
+            id: Date.now().toString(),
+            sender: 'Bot',
+            text: `Image analysis result: ${JSON.stringify(response.data, null, 2)}`
+        });
+        isLoading.value = false;
+    } catch (error) {
+        console.error('Error uploading image:', error);
+        messages.value.push({
+            id: Date.now().toString(),
+            sender: 'Bot',
+            text: `Error uploading image: ${error.message}`
+        });
+        isLoading.value = false;
+    }
 };
 
 const stopBot = () => {
@@ -160,10 +196,6 @@ onMounted(() => {
     background-color: #f1f1f1;
     align-self: flex-start;
 }
-.message-content {
-    white-space: pre-wrap;
-}
-
 .message-content pre {
     background: #f5f5f5;
     padding: 10px;
