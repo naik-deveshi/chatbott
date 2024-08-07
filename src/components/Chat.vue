@@ -6,6 +6,7 @@
         <div class="messages" ref="messagesContainer">
             <div v-for="msg in messages" :key="msg.id" :class="['message', msg.sender.toLowerCase()]">
                 <div class="message-content" v-html="renderMarkdown(msg.text)"></div>
+                <img v-if="msg.image" :src="msg.image" class="message-image" />
             </div>
             <div v-if="isLoading" class="loader">
                 <div class="spinner"></div>
@@ -13,7 +14,15 @@
         </div>
         <div class="input-container">
             <input v-model="inputMessage" @keyup.enter="sendMessage" placeholder="Type a message" />
-            <input type="file" @change="uploadImage" />
+            <label for="file-upload" class="upload-logo">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+            </label>
+            <input id="file-upload" type="file" @change="uploadImage" style="display: none;" />
             <button @click="isBotResponding ? stopBot() : sendMessage()">
                 {{ isBotResponding ? 'Stop' : 'Send' }}
             </button>
@@ -32,6 +41,7 @@ interface Message {
     id: string;
     sender: string;
     text: string;
+    image?: string;
 }
 
 const messages = ref<Message[]>([]);
@@ -114,7 +124,8 @@ const uploadImage = async (event: Event) => {
         messages.value.push({
             id: Date.now().toString(),
             sender: 'Bot',
-            text: `${JSON.stringify(response.data, null, 2)}`
+            text: response.data.description,
+            image: URL.createObjectURL(file)
         });
         isLoading.value = false;
     } catch (error) {
@@ -125,6 +136,20 @@ const uploadImage = async (event: Event) => {
             text: `Error uploading image: ${error.message}`
         });
         isLoading.value = false;
+    }
+};
+
+const handlePaste = (event: ClipboardEvent) => {
+    const items = event.clipboardData?.items;
+    if (!items) return;
+
+    for (const item of items) {
+        if (item.type.startsWith('image/')) {
+            const file = item.getAsFile();
+            if (file) {
+                uploadImage({ target: { files: [file] } } as any);
+            }
+        }
     }
 };
 
@@ -143,10 +168,29 @@ onMounted(() => {
             messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
         }
     });
+
+    window.addEventListener('paste', handlePaste); // Add paste event listener
 });
 </script>
 
 <style scoped>
+.upload-logo {
+    display: inline-block;
+    cursor: pointer;
+    margin-right: 6px;
+    margin-top: 4px;
+}
+
+.upload-logo img {
+    width: 24px;
+    height: 24px;
+}
+
+.message-image {
+    max-width: 100%;
+    height: auto;
+    margin-top: 8px;
+}
 .chat-container {
     position: fixed;
     top: 0;
