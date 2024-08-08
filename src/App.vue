@@ -1,8 +1,7 @@
 <!-- src/App.vue -->
 <template>
   <div id="app">
-    <Chat />
-    <!-- <ChatGPT /> -->
+    <router-view />
   </div>
 </template>
 

@@ -1,0 +1,235 @@
+<template>
+    <div class="chat-container">
+        <div class="header">
+            <h2>Chat with Clarifai AI</h2>
+        </div>
+        <div class="messages" ref="messagesContainer">
+            <div v-for="message in messages" :key="message.id" :class="['message', message.user ? 'user' : 'bot']">
+                <span class="message-content">{{ message.text }}</span>
+            </div>
+            <div v-if="isLoading" class="loader">
+                <div class="spinner"></div>
+            </div>
+        </div>
+        <div class="input-container">
+            <input v-model="input" @keydown.enter="sendMessage" placeholder="Type your message..." />
+            <label for="file-upload" class="upload-logo">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+            </label>
+            <input id="file-upload" type="file" @change="uploadImage" style="display: none;" />
+            <button @click="isBotResponding ? stopBot() : sendMessage()">
+                {{ isBotResponding ? 'Stop' : 'Send' }}
+            </button>
+        </div>
+    </div>
+</template>
+
+<script setup>
+import { ref, onMounted, nextTick } from 'vue';
+import axios from 'axios';
+
+const input = ref('');
+const messages = ref([]);
+const messagesContainer = ref(null);
+const isBotResponding = ref(false);
+const isLoading = ref(false);
+const instance = axios.create();
+
+const base64Image = ref(null);
+const uploadImage = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            base64Image.value = e.target.result.replace(/^data:image\/[a-z]+;base64,/, '');
+        };
+        reader.readAsDataURL(file);
+        // sendMessage();
+    }
+};
+
+
+const stopBot = () => {
+    if (eventSource.value) {
+        eventSource.value.close();
+        eventSource.value = null;
+        isBotResponding.value = false;
+        isLoading.value = false;
+    }
+};
+
+const sendMessage = async () => {
+    if (input.value.trim() === '' && base64Image.value === '') return;
+    const userMessage = {
+        id: Date.now(),
+        text: input.value,
+        user: true
+    };
+    messages.value.push(userMessage);
+    isLoading.value = true;
+
+    const payload = {
+        message: input.value ? input.value : '',
+        image: base64Image.value ? base64Image.value : ''
+    }
+
+    try {
+        const response = await instance.post('http://localhost:5000/api/chat', payload);
+        const botMessage = {
+            id: Date.now() + 1,
+            text: response.data.response,
+            user: false
+        };
+        messages.value.push(botMessage);
+        isLoading.value = false;
+    } catch (error) {
+        console.error('Error sending message:', error);
+        isBotResponding.value = false;
+        isLoading.value = false;
+
+    }
+
+    input.value = '';
+    nextTick(() => {
+        if (messagesContainer.value) {
+            messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
+        }
+    });
+};
+
+onMounted(() => {
+    nextTick(() => {
+        if (messagesContainer.value) {
+            messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
+        }
+    });
+});
+</script>
+
+<style scoped>
+.upload-logo {
+    display: inline-block;
+    cursor: pointer;
+    margin-right: 6px;
+    margin-top: 4px;
+}
+
+.upload-logo img {
+    width: 24px;
+    height: 24px;
+}
+
+.chat-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 400px;
+    height: 850px;
+    max-width: 100vw;
+    max-height: 100vh;
+    margin: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: #f9f9f9;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+}
+
+.header {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px;
+    text-align: center;
+}
+
+.messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+    background: #fff;
+    height: calc(100% - 95px);
+    display: flex;
+    flex-direction: column;
+}
+
+.message {
+    margin-bottom: 10px;
+    padding: 8px;
+    border-radius: 5px;
+}
+
+.message.user {
+    background-color: #d1e7dd;
+    align-self: flex-end;
+}
+
+.message.bot {
+    background-color: #f1f1f1;
+    align-self: flex-start;
+}
+
+.message-content {
+    padding: 10px;
+    border-radius: 5px;
+    overflow-x: auto;
+}
+
+.loader {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+}
+
+.spinner {
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border-left-color: #4CAF50;
+    animation: spin 1s ease infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.input-container {
+    display: flex;
+    border-top: 1px solid #ddd;
+    background-color: #fff;
+}
+
+input {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 0;
+}
+
+button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 10px;
+    cursor: pointer;
+    border-radius: 0;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+</style>
