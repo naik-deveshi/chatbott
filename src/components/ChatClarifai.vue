@@ -6,13 +6,14 @@
         <div class="messages" ref="messagesContainer">
             <div v-for="message in messages" :key="message.id" :class="['message', message.user ? 'user' : 'bot']">
                 <span class="message-content">{{ message.text }}</span>
+                <img v-if="message.image" :src="'data:image/jpeg;base64,' + message.image" class="message-image" />
             </div>
             <div v-if="isLoading" class="loader">
                 <div class="spinner"></div>
             </div>
         </div>
         <div class="input-container">
-            <input v-model="input" @keydown.enter="sendMessage" placeholder="Type your message..." />
+            <textarea v-model="input" @keydown.enter="sendMessage" placeholder="Type your message..."></textarea>
             <label for="file-upload" class="upload-logo">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none"
                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -25,6 +26,9 @@
             <button @click="isBotResponding ? stopBot() : sendMessage()">
                 {{ isBotResponding ? 'Stop' : 'Send' }}
             </button>
+        </div>
+        <div v-if="imagePreview" class="image-preview">
+            <img :src="imagePreview" alt="Image Preview" />
         </div>
     </div>
 </template>
@@ -39,20 +43,20 @@ const messagesContainer = ref(null);
 const isBotResponding = ref(false);
 const isLoading = ref(false);
 const instance = axios.create();
-
 const base64Image = ref(null);
+const imagePreview = ref(null);
+
 const uploadImage = (event) => {
     const file = event.target.files[0];
     if (file) {
         const reader = new FileReader();
         reader.onload = (e) => {
             base64Image.value = e.target.result.replace(/^data:image\/[a-z]+;base64,/, '');
+            imagePreview.value = e.target.result;
         };
         reader.readAsDataURL(file);
-        // sendMessage();
     }
 };
-
 
 const stopBot = () => {
     if (eventSource.value) {
@@ -64,10 +68,12 @@ const stopBot = () => {
 };
 
 const sendMessage = async () => {
-    if (input.value.trim() === '' && base64Image.value === '') return;
+    if (input.value.trim() === '' && !base64Image.value) return;
+
     const userMessage = {
         id: Date.now(),
         text: input.value,
+        image: base64Image.value,
         user: true
     };
     messages.value.push(userMessage);
@@ -91,10 +97,12 @@ const sendMessage = async () => {
         console.error('Error sending message:', error);
         isBotResponding.value = false;
         isLoading.value = false;
-
     }
 
     input.value = '';
+    base64Image.value = null;
+    imagePreview.value = null;
+
     nextTick(() => {
         if (messagesContainer.value) {
             messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
@@ -128,59 +136,65 @@ onMounted(() => {
     position: fixed;
     top: 0;
     left: 0;
-    width: 400px;
-    height: 850px;
-    max-width: 100vw;
-    max-height: 100vh;
-    margin: 10px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    overflow: hidden;
-    background-color: #f9f9f9;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    display: flex;
-    flex-direction: column;
-}
-
-.header {
-    background-color: #4CAF50;
-    color: white;
-    padding: 10px;
-    text-align: center;
-}
-
-.messages {
-    flex: 1;
-    overflow-y: auto;
-    padding: 10px;
-    background: #fff;
-    height: calc(100% - 95px);
-    display: flex;
-    flex-direction: column;
-}
-
-.message {
-    margin-bottom: 10px;
-    padding: 8px;
-    border-radius: 5px;
-}
-
-.message.user {
-    background-color: #d1e7dd;
-    align-self: flex-end;
-}
-
-.message.bot {
-    background-color: #f1f1f1;
-    align-self: flex-start;
-}
-
-.message-content {
-    padding: 10px;
-    border-radius: 5px;
-    overflow-x: auto;
-}
-
+    width: 600px;
+    height: 900px;
+        max-width: 100vw;
+        max-height: 100vh;
+        margin: 10px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        overflow: hidden;
+        background-color: #f9f9f9;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .header {
+        background-color: #4CAF50;
+        color: white;
+        padding: 10px;
+        text-align: center;
+    }
+    
+    .messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 10px;
+        background: #fff;
+        height: calc(100% - 95px);
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .message {
+        margin-bottom: 10px;
+        padding: 8px;
+        border-radius: 5px;
+    }
+    
+    .message.user {
+        background-color: #d1e7dd;
+        align-self: flex-end;
+    }
+    
+    .message.bot {
+        background-color: #f1f1f1;
+        align-self: flex-start;
+    }
+    
+    .message-content {
+        padding: 10px;
+        border-radius: 5px;
+        overflow-x: auto;
+    }
+    
+        .message-image {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
 .loader {
     display: flex;
     justify-content: center;
@@ -213,11 +227,12 @@ onMounted(() => {
     background-color: #fff;
 }
 
-input {
+textarea {
     flex: 1;
     padding: 10px;
     border: none;
     border-radius: 0;
+    resize: none;
 }
 
 button {
@@ -231,5 +246,19 @@ button {
 
 button:hover {
     background-color: #45a049;
+}
+
+.image-preview {
+    display: flex;
+    justify-content: center;
+    padding: 10px;
+    background-color: #fff;
+}
+
+.image-preview img {
+    max-width: 100%;
+    max-height: 200px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
 }
 </style>

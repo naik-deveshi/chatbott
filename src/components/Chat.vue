@@ -195,8 +195,8 @@ onMounted(() => {
     position: fixed;
     top: 0;
     left: 0;
-    width: 400px;
-    height: 850px;
+    width: 600px;
+        height: 900px;
     max-width: 100vw;
     max-height: 100vh;
     margin: 10px;
