@@ -13,7 +13,7 @@
             </div>
         </div>
         <div class="input-container">
-            <textarea v-model="input" @keydown.enter="sendMessage" placeholder="Type your message..."></textarea>
+            <textarea v-model="input" @keydown.enter="handleKeyPress" placeholder="Type your message..."></textarea>
             <label for="file-upload" class="upload-logo">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none"
                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -67,6 +67,14 @@ const stopBot = () => {
     }
 };
 
+const handleKeyPress = (event) => {
+    if (event.shiftKey) {
+        return;
+    } else {
+        sendMessage();
+    }
+};
+
 const sendMessage = async () => {
     if (input.value.trim() === '' && !base64Image.value) return;
 
@@ -83,6 +91,10 @@ const sendMessage = async () => {
         message: input.value ? input.value : '',
         image: base64Image.value ? base64Image.value : ''
     }
+
+    input.value = '';
+    base64Image.value = '';
+    imagePreview.value = '';
 
     try {
         const response = await instance.post('http://localhost:5000/api/chat', payload);
