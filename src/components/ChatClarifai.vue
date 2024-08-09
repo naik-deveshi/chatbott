@@ -35,14 +35,13 @@
 
 <script setup>
 import { ref, onMounted, nextTick } from 'vue';
-import axios from 'axios';
 
 const input = ref('');
 const messages = ref([]);
 const messagesContainer = ref(null);
 const isBotResponding = ref(false);
 const isLoading = ref(false);
-const instance = axios.create();
+const eventSource = ref(null);
 const base64Image = ref(null);
 const imagePreview = ref(null);
 
@@ -96,30 +95,37 @@ const sendMessage = async () => {
     base64Image.value = '';
     imagePreview.value = '';
 
-    try {
-        const response = await instance.post('http://localhost:5000/api/chat', payload);
-        const botMessage = {
-            id: Date.now() + 1,
-            text: response.data.response,
-            user: false
-        };
-        messages.value.push(botMessage);
+    const payloadString = JSON.stringify(payload);
+    const encodedPayload = encodeURIComponent(payloadString);
+    const url = `http://localhost:5000/api/chat?payload=${encodedPayload}`;
+
+    eventSource.value = new EventSource(url);
+
+    eventSource.value.onmessage = (event) => {
         isLoading.value = false;
-    } catch (error) {
-        console.error('Error sending message:', error);
+        const lastMessage = messages.value[messages.value.length - 1];
+        if (lastMessage && lastMessage.sender === 'Bot') {
+            lastMessage.text += event.data;
+        } else {
+            messages.value.push({
+                id: Date.now().toString(),
+                sender: 'Bot',
+                text: event.data
+            });
+        }
+        nextTick(() => {
+            if (messagesContainer.value) {
+                messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
+            }
+        });
+    };
+
+    eventSource.value.onerror = (error) => {
+        console.error('Error receiving message:', error);
+        eventSource.value?.close();
         isBotResponding.value = false;
         isLoading.value = false;
-    }
-
-    input.value = '';
-    base64Image.value = null;
-    imagePreview.value = null;
-
-    nextTick(() => {
-        if (messagesContainer.value) {
-            messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
-        }
-    });
+    };
 };
 
 onMounted(() => {
