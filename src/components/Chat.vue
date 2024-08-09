@@ -115,7 +115,7 @@ const uploadImage = async (event: Event) => {
 
     try {
         isLoading.value = true;
-        const response = await axios.post('http://localhost:5000/api/analyze-image', formData, {
+        const response = await axios.post('http://localhost:5000/api/ai21/analyze-image', formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },
