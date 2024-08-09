@@ -85,6 +85,7 @@ const sendMessage = async () => {
     };
     messages.value.push(userMessage);
     isLoading.value = true;
+    isBotResponding.value = true;
 
     const payload = {
         message: input.value ? input.value : '',
