@@ -1,5 +1,5 @@
 <template>
-    <div class="chat-container">
+    <div class="chat-container" @dragover.prevent @drop.prevent="handleDrop" @paste="handlePaste">
         <div class="header">
             <h2>Chat with Clarifai AI</h2>
         </div>
@@ -57,15 +57,36 @@ const renderMarkdown = (text) => {
     });
 };
 
+const handleFile = (file) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        base64Image.value = e.target.result.replace(/^data:image\/[a-z]+;base64,/, '');
+        imagePreview.value = e.target.result;
+    };
+    reader.readAsDataURL(file);
+};
+
+const handleDrop = (event) => {
+    const file = event.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+        handleFile(file);
+    }
+};
+
+const handlePaste = (event) => {
+    const items = event.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+        if (items[i].type.startsWith('image/')) {
+            const file = items[i].getAsFile();
+            handleFile(file);
+        }
+    }
+};
+
 const uploadImage = (event) => {
     const file = event.target.files[0];
     if (file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            base64Image.value = e.target.result.replace(/^data:image\/[a-z]+;base64,/, '');
-            imagePreview.value = e.target.result;
-        };
-        reader.readAsDataURL(file);
+        handleFile(file);
     }
 };
 
@@ -102,7 +123,7 @@ const sendMessage = async () => {
     const payload = {
         message: input.value ? input.value : '',
         image: base64Image.value ? base64Image.value : ''
-    }
+    };
 
     input.value = '';
     base64Image.value = '';
