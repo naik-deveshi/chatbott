@@ -5,7 +5,7 @@
         </div>
         <div class="messages" ref="messagesContainer">
             <div v-for="message in messages" :key="message.id" :class="['message', message.user ? 'user' : 'bot']">
-                <span class="message-content">{{ message.text }}</span>
+                <div class="message-content" v-html="renderMarkdown(message.text)"></div>
                 <img v-if="message.image" :src="'data:image/jpeg;base64,' + message.image" class="message-image" />
             </div>
             <div v-if="isLoading" class="loader">
@@ -35,6 +35,9 @@
 
 <script setup>
 import { ref, onMounted, nextTick } from 'vue';
+import { marked } from 'marked';
+import hljs from 'highlight.js';
+import 'highlight.js/styles/default.css';
 
 const input = ref('');
 const messages = ref([]);
@@ -44,6 +47,15 @@ const isLoading = ref(false);
 const eventSource = ref(null);
 const base64Image = ref(null);
 const imagePreview = ref(null);
+
+const renderMarkdown = (text) => {
+    return marked(text, {
+        highlight: function (code, lang) {
+            const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+            return hljs.highlight(code, { language }).value;
+        }
+    });
+};
 
 const uploadImage = (event) => {
     const file = event.target.files[0];
