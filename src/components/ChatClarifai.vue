@@ -1,8 +1,9 @@
 <template>
     <div class="chat-container" @dragover.prevent @drop.prevent="handleDrop" @paste="handlePaste">
         <div class="header">
-            <h2>Chat with Clarifai AI</h2>
+            <h2>Chat with Clarifai AI Tool</h2>
         </div>
+        <div></div>
         <div class="messages" ref="messagesContainer">
             <div v-for="message in messages" :key="message.id" :class="['message', message.user ? 'user' : 'bot']">
                 <div class="message-content" v-html="renderMarkdown(message.text)"></div>
