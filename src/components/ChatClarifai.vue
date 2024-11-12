@@ -4,6 +4,7 @@
             <h2>Chat with Clarifai AI Tool</h2>
         </div>
         <div></div>
+        <p class="abc"></p>
         <div class="messages" ref="messagesContainer">
             <div v-for="message in messages" :key="message.id" :class="['message', message.user ? 'user' : 'bot']">
                 <div class="message-content" v-html="renderMarkdown(message.text)"></div>
@@ -48,6 +49,11 @@ const isLoading = ref(false);
 const eventSource = ref(null);
 const base64Image = ref(null);
 const imagePreview = ref(null);
+
+watch(input, (newValue, oldValue) => {
+    console.log(`input changed from ${oldValue} to ${newValue}`);
+}); 
+
 
 const renderMarkdown = (text) => {
     return marked(text, {
