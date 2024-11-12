@@ -50,6 +50,17 @@ const eventSource = ref(null);
 const base64Image = ref(null);
 const imagePreview = ref(null);
 
+import { computed } from 'vue';
+
+const items = ref([1, 2, 3, 4, 5]);
+
+// Inefficiently recalculates even if `items` doesn't change
+const filteredItems = computed(() => {
+    return items.value.filter(item => item % 2 === 0);
+});
+console.log("======= filteredItems =======\n", filteredItems);
+
+
 const renderMarkdown = (text) => {
     return marked(text, {
         highlight: function (code, lang) {
