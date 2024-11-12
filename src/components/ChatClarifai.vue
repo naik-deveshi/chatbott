@@ -2,6 +2,9 @@
     <div class="chat-container" @dragover.prevent @drop.prevent="handleDrop" @paste="handlePaste">
         <div class="header">
             <h2>Chat with Clarifai AI Tool</h2>
+            <ul>
+                <li v-for="item in items">{{ item.name }}</li> <!-- Missing key attribute -->
+            </ul>
         </div>
         <div></div>
         <div class="messages" ref="messagesContainer">
@@ -40,6 +43,7 @@ import { marked } from 'marked';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/default.css';
 
+const items = ref([{ name: 'Item 1' }, { name: 'Item 2' }]);
 const input = ref('');
 const messages = ref([]);
 const messagesContainer = ref(null);
